@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from app.portfolio_generator import generate_portfolio
+from apps.backend.app.portfolio_generator import generate_portfolio
 
 @pytest.fixture
 def fixed_driver_data():

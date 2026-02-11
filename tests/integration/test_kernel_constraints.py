@@ -1,5 +1,5 @@
 import pytest
-from app.kernel import KernelLogic
+from apps.backend.app.kernel import KernelLogic
 
 @pytest.fixture
 def kernel():
