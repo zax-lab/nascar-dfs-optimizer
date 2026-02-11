@@ -73,19 +73,52 @@ class DatabaseManager:
 
         Creates tables if they don't exist:
         - races: Race information
+        - drivers: Driver information (for historical data)
+        - race_results: Historical race results
         - lineups: Saved lineup configurations
         - optimization_configs: User optimization settings
         - app_state: Application state key-value storage
         - jobs: Background job queue for optimization tasks
         """
         with self.get_connection() as conn:
+            # Drivers table (for historical data)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS drivers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    driver_id TEXT UNIQUE,
+                    team TEXT,
+                    salary INTEGER DEFAULT 8000,
+                    avg_finish REAL DEFAULT 20.0
+                )
+            """)
+
             # Races table
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS races (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    track_name TEXT NOT NULL,
-                    race_date TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    track TEXT NOT NULL,
+                    date TEXT NOT NULL,
+                    laps INTEGER,
+                    status TEXT DEFAULT 'scheduled',
+                    series TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # Race results table (for historical data)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS race_results (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    race_id INTEGER NOT NULL,
+                    driver_id INTEGER NOT NULL,
+                    start_position INTEGER,
+                    finish_position INTEGER,
+                    laps INTEGER,
+                    rating REAL,
+                    FOREIGN KEY (race_id) REFERENCES races(id) ON DELETE CASCADE,
+                    FOREIGN KEY (driver_id) REFERENCES drivers(id) ON DELETE CASCADE
                 )
             """)
 

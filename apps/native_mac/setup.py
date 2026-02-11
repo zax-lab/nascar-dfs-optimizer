@@ -9,7 +9,9 @@ Usage:
 from setuptools import setup
 
 APP = ["main.py"]
-DATA_FILES = []
+DATA_FILES = [
+    "Resources/data/race-logs.csv",
+]
 OPTIONS = {
     # Note: argv_emulation disabled - conflicts with PySide6 event loop
     # Use Qt's native file-open handling instead
