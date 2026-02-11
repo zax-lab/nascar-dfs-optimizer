@@ -18,7 +18,7 @@ Native macOS desktop application for DraftKings NASCAR DFS optimization using ph
 
 ## Quick Start
 
-1. Download `NASCAR-DFS-Optimizer-1.2.0.zip` from [GitHub Releases](https://github.com/your-repo/releases)
+1. Download `NASCAR-DFS-Optimizer-1.2.0.zip` from [GitHub Releases](https://github.com/zax-lab/nascar-dfs-optimizer/releases)
 2. Extract and drag `NASCAR DFS Optimizer.app` to `/Applications`
 3. Launch the app (Control-click → Open on first launch for Gatekeeper)
 4. Import race data: File → Open (select CSV with driver data)
@@ -248,7 +248,7 @@ For common issues and solutions, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
 ## License
 
-[Specify your license here]
+MIT License - See [LICENSE](LICENSE) file for details.
 
 ## Contact
 
