@@ -1,0 +1,106 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+ENV/
+env/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cursor/
+
+# Logs
+*.log
+logs/
+*.sqlite
+*.db
+*.db-shm
+*.db-wal
+
+# Build artifacts
+dist/
+build/
+*.pyc
+*.pyo
+*.pyd
+*.app
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.hypothesis/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Data files
+*.csv
+*.xlsx
+*.xls
+data/
+output/
+race-logs.csv
+epistemic.db
+
+# Temp files
+*.tmp
+*.temp
+execute
+plan
+verify
+
+# Archive
+*.zip
+*.tar.gz
+*.rtf
+
+# Backup
+Backup*.*
+backup*
+
+# Docker
+.dockerignore
+
+# Turbo
+.turbo/
+
+# Planning/notes
+.planning/
+*.resolved*
+*.metadata.json
+
+# Firebase
+firebase-debug.log
+firebase-debug.*.log
+
+# Conductor
+.conductor/
+conductor/
