@@ -1,106 +1,253 @@
+# Axiomatic NASCAR DFS Engine - .gitignore
+
+# =============================================================================
 # Python
+# =============================================================================
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-*.egg-info/
-dist/
 build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
 *.egg
-.venv/
+MANIFEST
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+cython_debug/
 venv/
-ENV/
 env/
+ENV/
+env.bak/
+venv.bak/
+.venv
 
-# Node
+# =============================================================================
+# Node.js / Next.js
+# =============================================================================
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
 .pnpm-debug.log*
+.npm
+.eslintcache
+.stylelintcache
+.next/
+out/
+build/
+dist/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
 
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-._*
+# =============================================================================
+# Environment Variables
+# =============================================================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
 
-# IDEs
+# =============================================================================
+# Neo4j
+# =============================================================================
+neo4j/data/
+neo4j/logs/
+neo4j/import/
+neo4j/plugins/
+neo4j/conf/neo4j.conf
+*.db
+*.db-shm
+*.db-wal
+
+# =============================================================================
+# Docker
+# =============================================================================
+.dockerignore
+docker-compose.override.yml
+
+# =============================================================================
+# Airflow
+# =============================================================================
+airflow/logs/
+airflow/airflow.db
+airflow/airflow-webserver.pid
+airflow/webserver_config.py
+airflow/__pycache__/
+airflow/dags/__pycache__/
+
+# =============================================================================
+# ML / AI Models
+# =============================================================================
+*.ckpt
+*.pth
+*.pt
+*.h5
+*.pb
+*.onnx
+*.tflite
+# ML model directories (root level only, not GUI model classes)
+/models/
+/checkpoints/
+*.pkl
+*.joblib
+*.model
+tinyllama/
+*.bin
+*.safetensors
+
+# =============================================================================
+# IDE / Editor
+# =============================================================================
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.cursor/
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
 
+# =============================================================================
 # Logs
+# =============================================================================
 *.log
 logs/
-*.sqlite
-*.db
-*.db-shm
-*.db-wal
+*.log.*
+firebase-debug.log
 
-# Build artifacts
-dist/
-build/
-*.pyc
-*.pyo
-*.pyd
-*.app
+# =============================================================================
+# OS Files
+# =============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
 
-# Test coverage
-.coverage
-htmlcov/
-.pytest_cache/
-.hypothesis/
-
-# Environment files
-.env
-.env.local
-.env.*.local
-
-# Data files
-*.csv
-*.xlsx
-*.xls
-data/
-output/
-race-logs.csv
-epistemic.db
-
-# Temp files
+# =============================================================================
+# Temporary Files
+# =============================================================================
 *.tmp
 *.temp
-execute
-plan
-verify
+*.bak
+*.backup
+*.swp
+*.swo
+*~
+.cache/
 
-# Archive
-*.zip
-*.tar.gz
-*.rtf
+# =============================================================================
+# Testing
+# =============================================================================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+test-results/
+coverage/
+.jest/
 
-# Backup
-Backup*.*
-backup*
+# =============================================================================
+# Build Artifacts
+# =============================================================================
+*.o
+*.a
+*.lib
+*.dll
+*.exe
+*.out
+*.app
 
-# Docker
-.dockerignore
+# =============================================================================
+# Project Specific
+# =============================================================================
+.planning/state.json
+.planning/checkpoints/
+*.pyc
+__pycache__/
+*.pyc
+.python-version
 
-# Turbo
-.turbo/
+# Keep .planning/ directory structure but ignore generated state files
+# (Planning docs are committed, but runtime state is not)
+!.planning/
+.planning/*.json
+!.planning/config.json
+.planning/checkpoints/
 
-# Planning/notes
-.planning/
-*.resolved*
-*.metadata.json
+# =============================================================================
+# GSD Tool (not part of nascar-model project)
+# =============================================================================
+get-shit-done/
 
-# Firebase
-firebase-debug.log
-firebase-debug.*.log
+# =============================================================================
+# Kilo Code / Cursor
+# =============================================================================
+.kilocode/
+.cursor/
+*.cursorrules.local
 
-# Conductor
-.conductor/
-conductor/
+# =============================================================================
+# Data / Database
+# =============================================================================
+*.sqlite
+*.sqlite3
+*.db
+data/
+datasets/
+raw_data/
+processed_data/
+
+# =============================================================================
+# Jupyter Notebooks
+# =============================================================================
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# =============================================================================
+# Documentation Build
+# =============================================================================
+docs/_build/
+docs/.doctrees/
+site/

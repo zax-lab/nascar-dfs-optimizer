@@ -1,0 +1,323 @@
+# NASCAR DFS Optimizer - Docker Compose Configuration
+#
+# This is the base production-ready configuration.
+# For development, use: docker-compose -f docker-compose.yml -f docker-compose.override.yml up
+# For production, use: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+#
+# Service Startup Order:
+# 1. neo4j (database) - must be healthy before dependent services start
+# 2. redis (cache/job queue) - must be healthy before backend starts
+# 3. backend (FastAPI) - waits for neo4j and redis to be healthy
+# 4. frontend (Next.js) - waits for backend to be ready
+# 5. airflow (scheduler) - waits for neo4j to be healthy
+#
+# Health checks ensure services are truly ready, not just container-started.
+# Restart policies ensure services recover from crashes (unless manually stopped).
+
+services:
+  # Neo4j Graph Database
+  # Primary data store for NASCAR ontology (drivers, tracks, races, relationships)
+  # Bolt protocol on 7687, HTTP browser interface on 7474
+  # Includes APOC plugin for advanced Cypher operations
+  neo4j:
+    image: neo4j:5.15.0-community
+    container_name: nascar-neo4j
+    ports:
+      - "7474:7474" # HTTP
+      - "7687:7687" # Bolt
+    environment:
+      # SECURITY WARNING: Always set NEO4J_PASSWORD environment variable with a strong password
+      # Default password is intentionally unset to force explicit configuration
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD}
+      NEO4J_PLUGINS: '["apoc"]'
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_import:/import
+    networks:
+      - nascar-network
+    # Resource limits to prevent runaway processes
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4G
+        reservations:
+          cpus: "0.5"
+          memory: 1G
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:7474",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    # Restart unless manually stopped (prevents downtime from crashes)
+    restart: unless-stopped
+
+  # Redis In-Memory Cache & Job Queue
+  # Used for: session storage, job state persistence, rate limiting counters
+  # Lightweight and fast, persists data to disk for recovery
+  redis:
+    image: redis:7-alpine
+    container_name: nascar-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - nascar-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Restart unless manually stopped
+    restart: unless-stopped
+
+  # FastAPI Backend Service
+  # REST API for NASCAR DFS optimization, ontology management, and projections
+  # Handles: driver projections, lineup optimization, race data, metaphysical adjustments
+  # Depends on: neo4j (data), redis (caching/jobs)
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: nascar-backend
+    ports:
+      - "8000:8000"
+    environment:
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: ${NEO4J_USER:-neo4j}
+      # SECURITY WARNING: Always set NEO4J_PASSWORD environment variable with a strong password
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD}
+      NASCAR_API_URL: ${NASCAR_API_URL:-https://api.nascar.com}
+      TINYLLAMA_CHECKPOINT: ${TINYLLAMA_CHECKPOINT:-/models/tinyllama}
+      API_KEYS: ${API_KEYS:-dev-key-12345}
+      API_KEY_HEADER: ${API_KEY_HEADER:-X-API-Key}
+      RATE_LIMIT_DEFAULT: ${RATE_LIMIT_DEFAULT:-100/hour}
+      RATE_LIMIT_OPTIMIZE: ${RATE_LIMIT_OPTIMIZE:-10/hour}
+      RATE_LIMIT_OWNERSHIP: ${RATE_LIMIT_OWNERSHIP:-30/hour}
+      RATE_LIMIT_CONTEST: ${RATE_LIMIT_CONTEST:-20/hour}
+      RATE_LIMIT_LEVERAGE: ${RATE_LIMIT_LEVERAGE:-10/hour}
+      RATE_LIMIT_STORAGE_URL: ${RATE_LIMIT_STORAGE_URL:-redis://redis:6379/1}
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+    volumes:
+      - ./apps/backend:/app
+      - ./packages:/app/packages
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - nascar-network
+    command:
+      [
+        "uvicorn",
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--reload",
+      ]
+    # Resource limits to prevent runaway processes
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    # Health check for backend service
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    # Restart unless manually stopped
+    restart: unless-stopped
+
+  # Next.js Frontend Service
+  # Web UI for NASCAR DFS optimizer
+  # Features: race data visualization, projection tables, lineup optimizer
+  # Depends on: backend (API calls)
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    container_name: nascar-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      API_URL: ${API_URL:-http://localhost:8000}
+      NEXT_PUBLIC_API_URL: ${API_URL:-http://localhost:8000}
+      NEXT_PUBLIC_API_KEY: ${NEXT_PUBLIC_API_KEY:-dev-key-12345}
+    volumes:
+      - ./apps/frontend/src:/app/src
+      - ./apps/frontend/public:/app/public
+    depends_on:
+      - backend
+    networks:
+      - nascar-network
+    # Resource limits to prevent runaway processes
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    # Health check for frontend service
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    # Restart unless manually stopped
+    restart: unless-stopped
+
+  # Apache Airflow Scheduler & Web Server
+  # Manages: data ingestion pipelines, model training jobs, periodic tasks
+  # Includes: DAGs for NASCAR API integration, driver skill model updates
+  # Depends on: neo4j (data storage), uses SQLite for Airflow metadata
+  airflow:
+    build:
+      context: ./apps/airflow
+      dockerfile: Dockerfile
+    container_name: nascar-airflow
+    ports:
+      - "8080:8080"
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: ${NEO4J_USER:-neo4j}
+      # SECURITY WARNING: Always set NEO4J_PASSWORD environment variable with a strong password
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD}
+      NASCAR_API_URL: ${NASCAR_API_URL:-https://api.nascar.com}
+    volumes:
+      - ./apps/airflow/dags:/opt/airflow/dags
+      - ./apps/airflow/plugins:/opt/airflow/plugins
+      - ./packages:/opt/airflow/packages
+      - airflow_logs:/opt/airflow/logs
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    networks:
+      - nascar-network
+    command: ["airflow", "standalone"]
+    # Resource limits to prevent runaway processes
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    # Health check for Airflow service
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    # Restart unless manually stopped
+    restart: unless-stopped
+
+# Shared Docker network for inter-service communication
+# All services join this network to communicate via service names (DNS resolution)
+networks:
+  nascar-network:
+    driver: bridge
+
+# Named volumes for persistent data storage
+# These survive container restarts and are not deleted on docker-compose down
+# - neo4j_*: Graph database data, logs, and import staging
+# - redis_data: Cache and session persistence
+# - airflow_logs: Task execution logs
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_import:
+  redis_data:
+  airflow_logs:
+# =============================================================================
+# TROUBLESHOOTING
+# =============================================================================
+#
+# Issue: Services fail to start with "connection refused" errors
+# Solution: Health checks and depends_on ensure proper startup order.
+#   If issues persist, increase start_period in healthcheck configs.
+#
+# Issue: Neo4j takes too long to start
+# Solution: Neo4j initial startup creates database files which can take 30-60s.
+#   The health check has start_period: 40s to accommodate this.
+#   First startup: be patient. Subsequent starts are faster.
+#
+# Issue: Backend can't connect to Neo4j despite health check passing
+# Solution: Health check verifies HTTP port (7474) but backend uses Bolt (7687).
+#   The wait-for-neo4j.sh script handles this by testing Bolt connectivity.
+#
+# Issue: Port conflicts (port already in use)
+# Solution: Check for existing services on ports 7474, 7687, 6379, 8000, 3000, 8080
+#   docker ps  # See running containers
+#   lsof -i :8000  # Check what's using port 8000
+#
+# Issue: Out of memory errors
+# Solution: Resource limits are set per-service. Increase memory limits in deploy.resources
+#   or reduce limits if host has limited RAM. Neo4j requires at least 1GB.
+#
+# Issue: Services restarting continuously
+# Solution: Check logs: docker-compose logs -f [service-name]
+#   Common causes: missing env vars, wrong Neo4j password, port conflicts
+#
+# Issue: Changes not reflecting in development
+# Solution: Ensure you're using docker-compose.override.yml for dev mode:
+#   docker-compose -f docker-compose.yml -f docker-compose.override.yml up
+#
+# =============================================================================

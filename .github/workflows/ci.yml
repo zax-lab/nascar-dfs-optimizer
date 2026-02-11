@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Turbo CLI
+        run: npm install -g turbo
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install backend dependencies
+        run: |
+          cd apps/backend
+          pip install -e .
+
+      - name: Install frontend dependencies
+        run: |
+          cd apps/frontend
+          npm install
+
+      - name: Install packages dependencies
+        run: |
+          cd packages/axiomatic-kernel
+          pip install -e .
+
+      - name: Run build
+        run: turbo run build
+
+      - name: Run tests
+        run: turbo run test

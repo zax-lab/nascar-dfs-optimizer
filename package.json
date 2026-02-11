@@ -1,0 +1,22 @@
+{
+  "name": "nascar-dfs-engine",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "lint": "turbo run lint"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "packageManager": "npm@10.0.0",
+  "dependencies": {
+    "pip": "^0.0.1"
+  }
+}

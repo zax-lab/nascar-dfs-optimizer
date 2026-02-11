@@ -1,0 +1,39 @@
+# Axiomatic NASCAR DFS – .cursorrules
+
+# CONTEXT
+- This is a monorepo for an Axiomatic NASCAR DraftKings DFS engine.
+- Architecture follows Kernel (logic) → Ontology (Neo4j) → Application (FastAPI, React, Airflow, TinyLlama).
+- DraftKings NASCAR Classic: 6 drivers, $50K salary cap, standard DK scoring.
+
+# GLOBAL CODING RULES
+- Always list relevant files before major edits: "Files I will touch: …".
+- Prefer small, composable modules with clear boundaries (backend/frontend/data/ml/devops/test).
+- Python: PEP8, type hints, pydantic models for request/response.
+- React: Functional components, hooks, TypeScript, co-locate component + styles.
+- Use explicit imports, no wildcard imports.
+
+# DOMAIN RULES
+- Core Python types:
+  - KernelLogic enforces race constraints (positions in [1, field_size], no impossible states).
+  - OntologyDriver wraps Neo4j driver (Driver, Track, Race nodes, metaphysical properties).
+  - LineupOptimizer uses PuLP/OR-Tools to solve DK constraints (6 drivers, <=50,000 salary).
+- Neo4j Driver properties MUST include:
+  - skill (0–1), psyche_aggression (0–1), shadow_risk (0–1), realpolitik_pos (0–1).
+- Metaphysical factors can change projection weights but may NOT violate hard logic constraints (Kernel veto is final).
+
+# TESTING RULES
+- Every new Python module must have a matching `tests/test_<name>.py`.
+- Every React component must have a matching `__tests__` file.
+- Airflow DAGs must have at least one test that verifies DAG load without errors.
+
+# WORKFLOW RULES (CURSOR / COMPOSER)
+- Use Composer multi-agent mode with 6 roles: Backend, Frontend, Data, ML, DevOps, Test.
+- Each agent MUST write progress and blockers to `agents/<role>/COORDINATION.md`.
+- Agents should never modify another role's directory except via clearly-commented shared packages.
+
+# STYLE / TURBO / MONOREPO
+- Monorepo layout:
+  - apps/backend (FastAPI), apps/frontend (Next/React), apps/airflow (DAGs).
+  - packages/axiomatic-kernel (shared logic/types).
+- `turbo run build` builds all apps in parallel; `turbo run test` runs tests.
+- Keep commands idempotent; no hard-coded local paths.

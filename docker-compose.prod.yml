@@ -1,0 +1,374 @@
+# Docker Compose Production Configuration
+#
+# This file extends docker-compose.yml with production-specific settings.
+# Use it with: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Key features:
+# - No volume mounts (immutable containers)
+# - Production-optimized resource limits
+# - Security hardening (read-only root fs, no new privileges)
+# - Health checks optimized for production
+# - No reload or debug modes
+#
+# Security considerations:
+# - Containers run with read-only root filesystem where possible
+# - No new privileges can be gained
+# - Resource limits prevent DoS via resource exhaustion
+# - Non-root users where supported by base images
+#
+# NOTE: Review and adjust resource limits based on your infrastructure.
+
+services:
+  # Neo4j - Production overrides
+  # Security hardening, optimized resources, no debug features
+  neo4j:
+    environment:
+      # Production logging - warnings and errors only
+      NEO4J_dbms_logs_debug_level: "WARN"
+      # Disable query logging in production (performance)
+      NEO4J_dbms_logs_query_enabled: "false"
+      # Security: require auth, no default accounts
+      NEO4J_dbms_security_auth__enabled: "true"
+      # Accept license (Neo4j Enterprise) - if using enterprise edition
+      # NEO4J_ACCEPT_LICENSE_AGREEMENT: "yes"
+    # Security: No additional volume mounts in production
+    # Data volumes are defined in base docker-compose.yml
+    # Security hardening options (requires Docker Swarm or compatible runtime)
+    # read_only: true  # Neo4j needs write access to /data, /logs, /tmp
+    # user: "7474:7474"  # Run as neo4j user if image supports it
+    # Production resource limits - adjust based on your infrastructure
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 8G
+        reservations:
+          cpus: "1.0"
+          memory: 2G
+      # Docker Swarm/Compose deploy options
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    # Health check - optimized for production (less frequent)
+    healthcheck:
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # Redis - Production overrides
+  # Persistence enabled, memory limits, optimized configuration
+  redis:
+    # Production command: persistence enabled, protected mode
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--loglevel",
+        "warning",
+        "--maxmemory",
+        "256mb",
+        "--maxmemory-policy",
+        "allkeys-lru",
+        "--requirepass",
+        "${REDIS_PASSWORD:-}",
+      ]
+    environment:
+      # Optional Redis password (set via environment)
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    # Security hardening (if using newer Redis image)
+    # read_only: true
+    # user: "999:999"  # Redis user
+    # Production resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 30s
+    # Health check - optimized for production
+    healthcheck:
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Backend - Production overrides
+  # Multi-stage build, no volumes, security hardening
+  backend:
+    environment:
+      # Production logging
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      # API authentication
+      API_KEYS: ${API_KEYS:-change-me}
+      API_KEY_HEADER: ${API_KEY_HEADER:-X-API-Key}
+      # Production rate limiting
+      RATE_LIMIT_DEFAULT: ${RATE_LIMIT_DEFAULT:-100/hour}
+      RATE_LIMIT_OPTIMIZE: ${RATE_LIMIT_OPTIMIZE:-10/hour}
+      RATE_LIMIT_OWNERSHIP: ${RATE_LIMIT_OWNERSHIP:-30/hour}
+      RATE_LIMIT_CONTEST: ${RATE_LIMIT_CONTEST:-20/hour}
+      RATE_LIMIT_LEVERAGE: ${RATE_LIMIT_LEVERAGE:-10/hour}
+      RATE_LIMIT_STORAGE_URL: ${RATE_LIMIT_STORAGE_URL:-redis://redis:6379/1}
+      # Disable debug mode
+      DEBUG: "false"
+      # Production CORS - restrict to your domain
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-https://yourdomain.com}
+    # CRITICAL: No volume mounts in production (immutable container)
+    # Code is baked into the image during build
+    volumes: []
+    # Security hardening
+    read_only: true
+    # user: "1000:1000"  # Run as non-root (if your Dockerfile creates app user)
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE  # Only if binding to privileged ports
+    # Production command: NO reload, optimized workers
+    # Using wait script to ensure Neo4j is ready before starting
+    entrypoint:
+      ["/scripts/wait-for-neo4j.sh", "neo4j", "7687", "30", "--"]
+    command:
+      [
+        "uvicorn",
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--workers",
+        "4",  # Multiple workers for production
+        "--proxy-headers",  # Trust proxy headers (if behind reverse proxy)
+        "--forwarded-allow-ips",
+        "*",
+        "--log-level",
+        "info",
+        "--no-access-log",  # Disable access log (use reverse proxy logs)
+      ]
+    # Production resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 4G
+        reservations:
+          cpus: "1.0"
+          memory: 1G
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 60s
+    # Health check - optimized for production
+    healthcheck:
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  # Frontend - Production overrides
+  # Static export, no dev server, security hardening
+  frontend:
+    environment:
+      NODE_ENV: production
+      # Disable source maps in production
+      NEXT_SOURCE_MAPS: "false"
+      # Disable telemetry
+      NEXT_TELEMETRY_DISABLED: "1"
+      # Production API URL (set to your domain)
+      # API_URL: "https://api.yourdomain.com"
+      # NEXT_PUBLIC_API_URL: "https://api.yourdomain.com"
+      # NEXT_PUBLIC_API_KEY: "<your-api-key>"
+    # CRITICAL: No volume mounts in production
+    volumes: []
+    # Security hardening
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # Production command: production Next.js server (not dev mode)
+    command: ["npm", "start"]
+    # Production resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 30s
+    # Health check - optimized for production
+    healthcheck:
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # Airflow - Production overrides
+  # Production executor, persistence, security hardening
+  airflow:
+    environment:
+      # Production logging
+      AIRFLOW__LOGGING__LOGGING_LEVEL: ${AIRFLOW_LOG_LEVEL:-WARNING}
+      # Production executor (consider CeleryExecutor for multi-node)
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      # Production parallelism
+      AIRFLOW__CORE__PARALLELISM: 16
+      # DAG concurrency
+      AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG: 5
+      # Production scheduler interval
+      AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: 30
+      # Enable DAG serialization (recommended for production)
+      AIRFLOW__CORE__STORE_DAG_CODE: "true"
+      AIRFLOW__CORE__STORE_SERIALIZED_DAGS: "true"
+      # Hide sensitive values in UI
+      AIRFLOW__WEBSERVER__HIDE_SENSITIVE_FIELD_NAMES: "true"
+      # Production web server workers
+      AIRFLOW__WEBSERVER__WORKERS: 4
+    # CRITICAL: Mount only necessary directories
+    # In production, DAGs should be baked into image or synced via Git
+    volumes:
+      - airflow_logs:/opt/airflow/logs
+      # Optional: mount DAGs from baked image or external storage
+      # - ./apps/airflow/dags:/opt/airflow/dags:ro
+    # Security hardening
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # Use wait script for production startup
+    entrypoint:
+      ["/scripts/wait-for-neo4j.sh", "neo4j", "7687", "60", "--", "airflow"]
+    command: ["standalone"]
+    # Production resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 4G
+        reservations:
+          cpus: "1.0"
+          memory: 1G
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 60s
+    # Health check - optimized for production
+    healthcheck:
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+# Production network (same as development but can add encryption)
+networks:
+  nascar-network:
+    driver: bridge
+    # Enable encryption for sensitive production traffic (performance impact)
+    # driver_opts:
+    #   encrypted: "true"
+
+# Production volumes (same names for consistency)
+volumes:
+  neo4j_data:
+    driver: local
+  neo4j_logs:
+    driver: local
+  neo4j_import:
+    driver: local
+  redis_data:
+    driver: local
+  airflow_logs:
+    driver: local
+
+# =============================================================================
+# PRODUCTION DEPLOYMENT CHECKLIST
+# =============================================================================
+#
+# Before deploying to production:
+#
+# 1. Environment Variables
+#    - Set all required environment variables in .env.prod file
+#    - NEO4J_PASSWORD: Strong password (minimum 12 characters)
+#    - REDIS_PASSWORD: Optional but recommended
+#    - RATE_LIMIT_DEFAULT: Adjust based on your traffic expectations
+#    - LOG_LEVEL: Set to WARNING or ERROR for less noise
+#
+# 2. Resource Planning
+#    - Review and adjust CPU/memory limits based on:
+#      - Expected concurrent users
+#      - Dataset size (Neo4j memory needs)
+#      - Optimization job frequency (Airflow)
+#    - Neo4j typically needs 2-4GB minimum for production datasets
+#
+# 3. Security
+#    - Ensure NEO4J_PASSWORD is strong and unique
+#    - Consider setting up Redis password
+#    - Review CORS settings for backend
+#    - Set up reverse proxy (nginx/traefik) with TLS
+#    - Configure firewall rules
+#
+# 4. Monitoring
+#    - Set up log aggregation (ELK, Datadog, etc.)
+#    - Configure health check alerting
+#    - Monitor resource usage and adjust limits
+#    - Set up Neo4j backup automation
+#
+# 5. Backup Strategy
+#    - Neo4j: Automated backups to S3/GCS/Azure
+#    - Redis: AOF persistence enabled (default in prod)
+#    - Airflow: SQLite backup (consider external DB for multi-node)
+#
+# 6. Scaling
+#    - Backend: Increase --workers in command based on CPU cores
+#    - Frontend: Consider CDN for static assets
+#    - Airflow: Consider CeleryExecutor for distributed execution
+#
+# 7. Example deployment command:
+#    docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# 8. Monitoring commands:
+#    docker-compose -f docker-compose.yml -f docker-compose.prod.yml ps
+#    docker-compose -f docker-compose.yml -f docker-compose.prod.yml logs -f
+#
+# =============================================================================
+# ENVIRONMENT VARIABLE VALIDATION
+# =============================================================================
+#
+# Required variables (must be set in environment or .env file):
+# - NEO4J_PASSWORD: Strong password for Neo4j (min 8 chars, ideally 16+)
+# - NEO4J_USER: Username for Neo4j (default: neo4j)
+#
+# Optional variables with defaults:
+# - NEO4J_URI: Neo4j connection URI (default: bolt://neo4j:7687)
+# - REDIS_HOST: Redis hostname (default: redis)
+# - REDIS_PORT: Redis port (default: 6379)
+# - REDIS_PASSWORD: Redis password (default: empty)
+# - LOG_LEVEL: Logging level (default: INFO for prod, DEBUG for dev)
+# - RATE_LIMIT_DEFAULT: Default rate limit (default: 100/hour)
+# - RATE_LIMIT_OPTIMIZE: Optimize endpoints (default: 10/hour)
+# - RATE_LIMIT_OWNERSHIP: Ownership endpoints (default: 30/hour)
+# - RATE_LIMIT_CONTEST: Contest simulation (default: 20/hour)
+# - RATE_LIMIT_LEVERAGE: Leverage optimization (default: 10/hour)
+# - NASCAR_API_URL: NASCAR API endpoint (default: https://api.nascar.com)
+# - AIRFLOW_LOG_LEVEL: Airflow logging (default: WARNING)
+#
+# =============================================================================

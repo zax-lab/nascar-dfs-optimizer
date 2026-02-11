@@ -1,0 +1,34 @@
+# Axiomatic NASCAR DFS Engine - .gitattributes
+# Helps GitHub correctly identify repository language and type
+
+# Mark Python files
+*.py linguist-language=Python
+*.pyw linguist-language=Python
+
+# Mark TypeScript/JavaScript files
+*.ts linguist-language=TypeScript
+*.tsx linguist-language=TypeScript
+*.js linguist-language=JavaScript
+*.jsx linguist-language=JavaScript
+
+# Mark documentation as documentation
+*.md linguist-documentation
+README.md linguist-documentation=true
+
+# Mark test files
+*test*.py linguist-documentation=false
+*test*.ts linguist-documentation=false
+*test*.tsx linguist-documentation=false
+
+# Exclude get-shit-done from language stats
+get-shit-done/** linguist-vendored=true
+
+# Exclude node_modules from language stats
+node_modules/** linguist-vendored=true
+
+# Exclude build artifacts
+*.pyc linguist-generated=true
+__pycache__/** linguist-generated=true
+.next/** linguist-generated=true
+dist/** linguist-generated=true
+build/** linguist-generated=true

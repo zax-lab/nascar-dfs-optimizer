@@ -1,0 +1,107 @@
+# NASCAR Model Configuration
+
+# 1. Priors Configuration
+priors:
+  # Window size for calculating driver form (recent races)
+  form_window: 6
+  
+  # Weights for different prior components
+  weights:
+    track_history: 0.4
+    recent_form: 0.3
+    qualifying: 0.2
+    practice: 0.1
+    
+  # Track type definitions
+  track_types:
+    superspeedway: ['Daytona', 'Talladega', 'Atlanta']
+    short_track: ['Bristol', 'Martinsville', 'Richmond']
+    intermediate: ['Charlotte', 'Texas', 'Las Vegas', 'Kansas']
+    road_course: ['Watkins Glen', 'Sonoma', 'Charlotte Roval', 'COTA']
+    
+  # Context features to include
+  context_features:
+    - start_position
+    - manufacturer
+    - team_tier
+
+# 2. Belief Model Configuration
+belief:
+  # Type of uncertainty modeling
+  uncertainty_type: 'aleatory_epistemic' # options: simple, aleatory_epistemic
+  
+  # Half-life for time decay (in days) per track type
+  time_decay_halflife:
+    superspeedway: 365
+    short_track: 180
+    intermediate: 90
+    road_course: 365
+    default: 180
+    
+  # Hierarchical pooling strengths (0-1)
+  pooling_strength:
+    team: 0.3
+    manufacturer: 0.1
+    
+  # Bayesian update parameters
+  min_confidence: 0.01
+  max_confidence: 0.99
+
+# 3. Simulation Engine Configuration
+simulation:
+  n_simulations: 10000
+  n_laps_default: 200
+  
+  # Caution probability per lap by track type
+  caution_probs:
+    superspeedway: 0.08
+    short_track: 0.12
+    intermediate: 0.06
+    road_course: 0.05
+    
+  # Pit cycle laps (green flag)
+  pit_cycles:
+    superspeedway: 40
+    short_track: 120
+    intermediate: 55
+    road_course: 30
+    
+  # Multi-car wreck parameters
+  incident_model:
+    enabled: true
+    pack_wreck_prob: 0.02 # per lap on superspeedways
+    restart_wreck_prob: 0.05 # probability of wreck on restart
+    
+  # Stage strategy
+  stage_strategy:
+    enabled: true
+    points_incentive: 1.5 # Multiplier for stage points utility
+
+# 4. Optimizer Configuration
+optimizer:
+  salary_cap: 50000
+  n_drivers: 6
+  
+  # Leverage penalty parameters
+  leverage:
+    penalty_type: 'nonlinear' # options: linear, nonlinear
+    base_penalty: 0.5
+    exponent: 1.5 # For nonlinear penalty
+    
+  # Correlation constraints
+  correlation:
+    max_teammates: 3
+    max_manufacturer: 4
+    
+  # Multi-objective weights
+  objectives:
+    ev_weight: 1.0
+    ceiling_weight: 0.5
+    risk_weight: -0.2
+
+# 5. Engineering/System
+system:
+  random_seed: 42
+  log_level: 'INFO'
+  db_path: 'nascar_model.db'
+  output_dir: 'output'
