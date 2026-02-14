@@ -1,6 +1,11 @@
-# NASCAR DFS Optimizer v1.2.0
+# NASCAR DFS Optimizer v1.2.1
+
+**Status:** ✅ STABLE & SHIPPED - Real NASCAR Data Edition
 
 Native macOS desktop application for DraftKings NASCAR DFS optimization using physics-compliant constraints and MCMC sampling.
+
+**Latest Release:** v1.2.1 (2026-02-14) - App fully functional with real NASCAR data
+**Project Status:** See [PROJECT-STATUS.md](PROJECT-STATUS.md) for current state and architecture details
 
 ## Features
 
@@ -24,6 +29,21 @@ Native macOS desktop application for DraftKings NASCAR DFS optimization using ph
 4. Import race data: File → Open (select CSV with driver data)
 5. Set constraints and click "Run Optimization"
 6. Export lineups: Lineups tab → Export to DraftKings
+
+## Recent Fixes
+
+**PySide6 Crash Fix (2026-02-14):**
+- Fixed SIGSEGV crash on app launch
+- Changed DEFAULT_SHORTCUTS from QKeySequence objects to strings (avoids creating Qt objects before QApplication)
+- Added missing set_undo_manager() method to MainWindow
+- App now launches and runs successfully
+
+**What This Means:**
+The app is now stable and fully functional. All core features work:
+- ✅ GUI launches without crashes
+- ✅ Real NASCAR data auto-seeds on first launch
+- ✅ Optimization engine generates lineups
+- ✅ CSV export works for DraftKings
 
 ## Installation
 
