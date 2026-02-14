@@ -1057,3 +1057,18 @@ class MainWindow(QMainWindow):
         if hasattr(self, "split_editor_tab") and self.split_editor_tab:
             self.split_editor_tab.preset_manager = preset_manager
             self.split_editor_tab._load_presets()
+
+    def set_undo_manager(self, undo_manager: Optional[Any]) -> None:
+        """Set the UndoManager and wire it to all tabs.
+
+        Args:
+            undo_manager: UndoManager instance for undo/redo actions.
+        """
+        self.undo_manager = undo_manager
+
+        # Wire undo manager to tabs that support undo/redo
+        if hasattr(self, "optimization_tab") and self.optimization_tab:
+            self.optimization_tab.undo_manager = undo_manager
+
+        if hasattr(self, "lineups_tab") and self.lineups_tab:
+            self.lineups_tab.undo_manager = undo_manager

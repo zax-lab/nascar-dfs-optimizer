@@ -356,6 +356,10 @@ class SplitEditorTab(QWidget):
         if not self.preset_manager:
             return
 
+        # Guard: preset_combo may not exist if widget initialized without preset_manager
+        if not hasattr(self, 'preset_combo'):
+            return
+
         try:
             # Load all presets for dropdown
             presets = self.preset_manager.get_all_presets()

@@ -22,41 +22,39 @@ class ShortcutManager(QObject):
         DEFAULT_SHORTCUTS: Class-level default shortcuts dictionary
     """
 
-    # Default shortcuts following standard macOS conventions
+    # Default shortcuts following standard macOS conventions (stored as strings, converted to QKeySequence on-demand)
     DEFAULT_SHORTCUTS = {
         # File menu
-        "new_race": QKeySequence.StandardKey.New,  # Cmd+N
-        "open_data": QKeySequence.StandardKey.Open,  # Cmd+O
-        "save_lineups": QKeySequence.StandardKey.Save,  # Cmd+S
+        "new_race": "Ctrl+N",  # Cmd+N on Mac
+        "open_data": "Ctrl+O",  # Cmd+O on Mac
+        "save_lineups": "Ctrl+S",  # Cmd+S on Mac
         # Edit menu
-        "undo": QKeySequence.StandardKey.Undo,  # Cmd+Z
-        "redo": QKeySequence.StandardKey.Redo,  # Cmd+Shift+Z
-        "preferences": QKeySequence.StandardKey.Preferences,  # Cmd+,
+        "undo": "Ctrl+Z",  # Cmd+Z on Mac
+        "redo": "Ctrl+Shift+Z",  # Cmd+Shift+Z on Mac
+        "preferences": "Ctrl+,",  # Cmd+, on Mac
         # Optimization menu
-        "optimize": QKeySequence(
-            "Ctrl+Return"
-        ),  # Cmd+Return on Mac (Ctrl+Return interpreted)
-        "cancel": QKeySequence.StandardKey.Cancel,  # Cmd+.
+        "optimize": "Ctrl+Return",  # Cmd+Return on Mac (Ctrl+Return interpreted)
+        "cancel": "Ctrl+.",  # Cmd+. on Mac
         # View menu
-        "toggle_split": QKeySequence("Ctrl+\\"),  # Ctrl+Backslash
-        "focus_constraints": QKeySequence("Ctrl+1"),  # Focus left pane
-        "focus_preview": QKeySequence("Ctrl+2"),  # Focus right pane
-        "focus_logs": QKeySequence("Ctrl+3"),  # Focus veto logs
+        "toggle_split": "Ctrl+\\",  # Ctrl+Backslash
+        "focus_constraints": "Ctrl+1",  # Focus left pane
+        "focus_preview": "Ctrl+2",  # Focus right pane
+        "focus_logs": "Ctrl+3",  # Focus veto logs
         # Presets
-        "apply_preset": QKeySequence("Ctrl+P"),  # Apply constraint preset
-        "save_preset": QKeySequence("Ctrl+Shift+P"),  # Save current as preset
+        "apply_preset": "Ctrl+P",  # Apply constraint preset
+        "save_preset": "Ctrl+Shift+P",  # Save current as preset
         # Navigation
-        "next_tab": QKeySequence("Ctrl+Tab"),  # Next tab
-        "prev_tab": QKeySequence("Ctrl+Shift+Tab"),  # Previous tab
-        "show_jobs": QKeySequence("Ctrl+J"),  # Switch to Jobs tab
-        "show_lineups": QKeySequence("Ctrl+L"),  # Switch to Lineups tab
+        "next_tab": "Ctrl+Tab",  # Next tab
+        "prev_tab": "Ctrl+Shift+Tab",  # Previous tab
+        "show_jobs": "Ctrl+J",  # Switch to Jobs tab
+        "show_lineups": "Ctrl+L",  # Switch to Lineups tab
         # Find/Search
-        "find": QKeySequence.StandardKey.Find,  # Cmd+F
+        "find": "Ctrl+F",  # Cmd+F on Mac
         # Export
-        "export_csv": QKeySequence("Ctrl+E"),  # Export to DraftKings
+        "export_csv": "Ctrl+E",  # Export to DraftKings
         # Application
-        "quit": QKeySequence.StandardKey.Quit,  # Cmd+Q
-        "customize_shortcuts": QKeySequence(),  # No default, accessed via menu
+        "quit": "Ctrl+Q",  # Cmd+Q on Mac
+        "customize_shortcuts": "",  # No default, accessed via menu
     }
 
     # Action categories for organization
@@ -143,7 +141,8 @@ class ShortcutManager(QObject):
 
         # Apply shortcut (custom or default)
         shortcut = self.get_shortcut(action_id)
-        if shortcut and not shortcut.isEmpty():
+        # Safe check: ensure shortcut is a valid QKeySequence and not empty
+        if shortcut and isinstance(shortcut, QKeySequence) and not shortcut.isEmpty():
             action.setShortcut(shortcut)
             action.setShortcutContext(Qt.ApplicationShortcut)  # Global within app
 
@@ -228,8 +227,9 @@ class ShortcutManager(QObject):
         if action_id in self.custom_shortcuts:
             return self.custom_shortcuts[action_id]
 
-        # Otherwise return default
-        return self.DEFAULT_SHORTCUTS.get(action_id, QKeySequence())
+        # Otherwise get default string and convert to QKeySequence
+        default_str = self.DEFAULT_SHORTCUTS.get(action_id, "")
+        return QKeySequence(default_str) if default_str else QKeySequence()
 
     def get_action(self, action_id: str) -> Optional[QAction]:
         """Get an action by its ID.

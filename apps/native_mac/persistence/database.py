@@ -239,29 +239,28 @@ class DatabaseManager:
         """
         with self.get_connection() as conn:
             cursor = conn.execute(
-                "INSERT INTO races (track_name, race_date) VALUES (?, ?)",
+                "INSERT INTO races (track_name, date) VALUES (?, ?)",
                 (track_name, race_date),
             )
             return cursor.lastrowid
 
-    def load_races(self) -> List[Dict[str, Any]]:
+    def get_all_races(self) -> List[Dict[str, Any]]:
         """Load all races from the database.
 
         Returns:
-            List of dictionaries containing race data.
+            List of dictionaries containing race data with id, name, track,
+            date, laps, status, series, and created_at fields.
         """
         with self.get_connection() as conn:
-            cursor = conn.execute("SELECT * FROM races ORDER BY race_date DESC")
+            cursor = conn.execute("SELECT * FROM races ORDER BY date DESC")
             rows = cursor.fetchall()
             return [
-                {
-                    "id": row["id"],
-                    "track_name": row["track_name"],
-                    "race_date": row["race_date"],
-                    "created_at": row["created_at"],
-                }
-                for row in rows
+                dict(row) for row in rows
             ]
+
+    def load_races(self) -> List[Dict[str, Any]]:
+        """Alias for get_all_races() for backward compatibility."""
+        return self.get_all_races()
 
     def save_config(self, name: str, config_data: Dict[str, Any]) -> int:
         """Save an optimization configuration.
